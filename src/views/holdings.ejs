@@ -21,7 +21,7 @@
   <%
     const result = await db.query(
       req.query.taxlots === undefined ?
-        "select brokerage, ticker, txids, shorted, open_date, amount, sum(basis) as basis, sum(value) as value from out_holdings group by brokerage, ticker order by brokerage asc, ticker desc" :
+        "select brokerage, ticker, txids, shorted, min(open_date) as open_date, sum(amount) as amount, sum(basis) as basis, sum(value) as value from out_holdings group by brokerage, ticker, shorted order by brokerage asc, ticker desc" :
         "select brokerage, ticker, txids, shorted, open_date, amount, basis, value from out_holdings order by brokerage asc, ticker desc, open_date asc"
       );
 

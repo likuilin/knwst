@@ -205,13 +205,17 @@ module.exports = async (req, res) => {
           const netB = sToFix(net);
 
           // find basis
+          let locate_basis_check; // check to make sure custom locate_basis is correct
           if (holdings[i].amount === amount) {
             // closes all of it, so locate_basis is optional
             if (locate_basis !== null && locate_basis !== holdings[i].basis) throw new Error(txid + " " + locate_basis + " " + holdings[i].basis);
             locate_basis = holdings[i].basis;
+            locate_basis_check = fixToS(0n);
+            // select cast(substring_index(txids, ",", -1) as int) as txid, locate_basis_check as locate_basis from out_realized where basis=0 and brokerage like "%401k%"
           } else {
             // locate_basis is required because different brokerages pro rata the commission in different ways
             if (!locate_basis) throw new Error(txid);
+            locate_basis_check = fixToS(sToFix(holdings[i].basis) * sToFix(amount, 18) / sToFix(holdings[i].amount, 18)) - locate_basis;
           }
 
           // add our tx to the txids
@@ -222,7 +226,7 @@ module.exports = async (req, res) => {
             realized.push({
               brokerage, ttype, ticker, txids: holdings[i].txids,
               acquire_date: holdings[i].open_date, dispose_date: date,
-              amount, basis: locate_basis, proceeds: net
+              amount, basis: locate_basis, proceeds: net, locate_basis_check
             });
           } else { // buy close
             realized.push({
@@ -230,7 +234,7 @@ module.exports = async (req, res) => {
               acquire_date: date, dispose_date: date,
               // "basis" is the credit we got for the initial short sale, so negative that is proceeds of the close
               // basis of the close is cash used to repurchase share, so -netB
-              amount, basis: fixToS(-netB), proceeds: fixToS(-sToFix(locate_basis))
+              amount, basis: fixToS(-netB), proceeds: fixToS(-sToFix(locate_basis)), locate_basis_check
             });
           }
           closed_pnl[brokerage] += netB - sToFix(locate_basis);
@@ -299,8 +303,8 @@ module.exports = async (req, res) => {
   await db.batch("insert into out_holdings (brokerage, ttype, ticker, txids, shorted, open_date, amount, basis, value) values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
     holdings.map(({brokerage, ttype, ticker, txids, shorted, open_date, amount, basis, value}) => [brokerage, ttype, ticker, txids, shorted, open_date, amount, basis, value || null])
     .concat(Object.keys(holdings_cash).map(brokerage => [brokerage, 'cash', '==CASH==', '', 0, null, fixToS(holdings_cash[brokerage]), 0, null])));
-  await db.batch("insert into out_realized (brokerage, ttype, ticker, txids, acquire_date, dispose_date, amount, basis, proceeds) values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    realized.map(({brokerage, ttype, ticker, txids, acquire_date, dispose_date, amount, basis, proceeds}) => [brokerage, ttype, ticker, txids, acquire_date, dispose_date, amount, basis, proceeds]));
+  await db.batch("insert into out_realized (brokerage, ttype, ticker, txids, acquire_date, dispose_date, amount, basis, proceeds, locate_basis_check) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    realized.map(({brokerage, ttype, ticker, txids, acquire_date, dispose_date, amount, basis, proceeds, locate_basis_check}) => [brokerage, ttype, ticker, txids, acquire_date, dispose_date, amount, basis, proceeds, locate_basis_check]));
 
   // save yf data
   if (yf_add.length) await db.batch("insert into yfdata (ticker, date, close) values (?, ?, ?)", yf_add);

@@ -20,10 +20,6 @@
           {
             label: 'Net Worth',
             data: result.map(({date: x, ff_no_market, yf_market}) => ({x, y: ff_no_market + yf_market}))
-          },
-          {
-            label: 'Invested',
-            data: result.map(({date: x, yf_invested_spec, yf_invested_index}) => ({x, y: yf_invested_spec + yf_invested_index }))
           }
         );
         if (req.query.mode === "valid") datasets.push(
@@ -54,7 +50,7 @@
             fill: '-1'
           },
           {
-            label: 'Cash (Plus 401k sigh TODO)',
+            label: 'Cash & Other',
             data: result.map(({date: x, ff_no_market, yf_market, yf_invested_spec, yf_invested_index}) => ({x, y: ff_no_market + yf_market - yf_invested_spec - yf_invested_index})),
             fill: '-1'
           }

@@ -16,7 +16,7 @@
 </head>
 <body>
   <h1>knwst - Realized</h1>
-  <p><a href="/">Home</a><% if (req.query.iras === undefined) { %> - <a href="/realized?iras">Include IRAs</a><% } %></p>
+  <p><a href="/">Home</a><% if (req.query.iras === undefined) { %> - <a href="/realized?iras">Include Tax-Deferred</a><% } %></p>
   <table>
   <%
     const result = await db.query("select *, year(dispose_date) as taxyear from out_realized order by taxyear desc, brokerage asc, ticker asc");
@@ -27,7 +27,7 @@
       %><tr><td colspan="9" class="ar bold">Total Realized: <%= total.toLocaleString("en-US", {style: "currency", currency: "USD"}) %></td></tr><%
     }
     for (const {taxyear,brokerage,ticker,acquire_date,dispose_date,amount,basis,proceeds} of result) {
-      if (req.query.iras === undefined && brokerage.split(" ").includes("IRA")) continue;
+      if (req.query.iras === undefined && (brokerage.split(" ").includes("IRA") || brokerage.split(" ").includes("401k"))) continue; // todo optimize
       if (last_taxyear !== taxyear) {
         if (last_taxyear !== null) last();
         %>
