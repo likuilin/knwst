@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+<head>
+  <title>knwst - Holdings</title>
+  <style>
+    td {
+      padding: 0.3em;
+    }
+    .ar {
+      text-align: right;
+    }
+    .bold {
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>knwst - Holdings</h1>
+  <p><a href="/">Home</a><% if (req.query.taxlots === undefined) { %> - <a href="/holdings?taxlots">Tax Lots</a><% } %></p>
+  <table>
+  <%
+    const result = await db.query(
+      req.query.taxlots === undefined ?
+        "select brokerage, ticker, txids, shorted, open_date, amount, sum(basis) as basis, sum(value) as value from out_holdings group by brokerage, ticker order by brokerage asc, ticker desc" :
+        "select brokerage, ticker, txids, shorted, open_date, amount, basis, value from out_holdings order by brokerage asc, ticker desc, open_date asc"
+      );
+
+    function last() {
+      %><tr><td colspan="8" class="ar bold">Total Value: <%= total.toLocaleString("en-US", {style: "currency", currency: "USD"}) %></td></tr><%
+    }
+
+    let last_brokerage = null;
+    let total = 0;
+    let grandtotal = 0;
+    for (const {brokerage,ttype,ticker,txids,shorted,open_date,amount,basis,value} of result) {
+      if (last_brokerage !== brokerage) {
+        // new brokerage - this is janky lol
+        // assume there are no tickers after cash, if it has no cash too then skip
+        if (ticker === "==CASH==" && +amount === 0) continue;
+        if (last_brokerage !== null) {
+          last();
+        }
+        %>
+          <tr><td colspan="8" class="bold" style="font-size: 1.5em;border-top: 1px solid black;"><%= brokerage %></td></tr>
+          <tr class="bold">
+            <td>ticker</td>
+            <td>open_date</td>
+            <td>amount</td>
+            <td>basis</td>
+            <td>value</td>
+            <td>gains</td>
+          </tr>
+        <%
+        last_brokerage = brokerage;
+        total = 0;
+      }
+      // handle cash line
+      if (ticker === "==CASH==") {
+        total += +amount;
+        grandtotal += +amount;
+        %><tr><td colspan="4">== cash ==</td><td class="ar"><%= (+amount).toLocaleString("en-US", {style: "currency", currency: "USD"}) %></td><td></td></tr><%
+        continue;
+      }
+      total += +value;
+      grandtotal += +value;
+      %>
+        <tr>
+          <td><%= ticker + (shorted ? " (short)" : "") %></td>
+          <td><%= open_date ? open_date.toISOString().split("T")[0] : "" %></td>
+          <td class="ar"><%= (+amount).toLocaleString() %></td>
+          <td class="ar"><%= basis ? (+basis).toLocaleString("en-US", {style: "currency", currency: "USD"}) : "" %></td>
+          <td class="ar"><%= value ? (+value).toLocaleString("en-US", {style: "currency", currency: "USD"}) : "" %></td>
+          <td class="ar"><%= (value && basis) ? (value-basis).toLocaleString("en-US", {style: "currency", currency: "USD"}) : "" %></td>
+        </tr>
+      <%
+    }
+    last();
+  %>
+    <tr><td colspan="8" class="ar bold" style="border-top: 1px solid black;">Grand Total Value: <%= grandtotal.toLocaleString("en-US", {style: "currency", currency: "USD"}) %></td></tr>
+</body>
+</html>

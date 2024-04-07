@@ -1,0 +1,143 @@
+<!doctype html>
+<html>
+<head>
+  <title>knwst</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <style>
+    a:visited{ color: blue; }
+  </style>
+  <script>
+    const load = () => {
+      const datasets = <%
+        const result = (await db.query("select * from out_graph where date >= (select min(date) as d from fftxs) order by date asc")).map(
+          // convert date and all data points to floats
+          row => Object.fromEntries(Object.keys(row).map(k => [k, +row[k]])));
+          
+        const datasets = [];
+        // default and validation are normal line, validation adds raw data
+        if (req.query.mode === "valid" || req.query.mode === undefined) datasets.push(
+          {
+            label: 'Net Worth',
+            data: result.map(({date: x, ff_no_market, yf_market}) => ({x, y: ff_no_market + yf_market}))
+          },
+          {
+            label: 'Invested',
+            data: result.map(({date: x, yf_invested_spec, yf_invested_index}) => ({x, y: yf_invested_spec + yf_invested_index }))
+          }
+        );
+        if (req.query.mode === "valid") datasets.push(
+          {
+            label: 'ff_no_market',
+            data: result.map(({date: x, ff_no_market}) => ({x, y: ff_no_market}))
+          },
+          {
+            label: 'ff_market',
+            data: result.map(({date: x, ff_market}) => ({x, y: ff_market}))
+          },
+          {
+            label: 'yf_market',
+            data: result.map(({date: x, yf_market}) => ({x, y: yf_market}))
+          }
+        );
+
+        // allocation is a stacked line chart
+        if (req.query.mode === "alloc") datasets.push(
+          {
+            label: 'Speculative',
+            data: result.map(({date: x, yf_invested_spec}) => ({x, y: yf_invested_spec})),
+            fill: 'origin'
+          },
+          {
+            label: 'Index Funds',
+            data: result.map(({date: x, yf_invested_index}) => ({x, y: yf_invested_index})),
+            fill: '-1'
+          },
+          {
+            label: 'Cash (Plus 401k sigh TODO)',
+            data: result.map(({date: x, ff_no_market, yf_market, yf_invested_spec, yf_invested_index}) => ({x, y: ff_no_market + yf_market - yf_invested_spec - yf_invested_index})),
+            fill: '-1'
+          }
+        );
+        %><%- JSON.stringify(datasets) %>;
+
+      new Chart(document.getElementById("chart"), {
+        type: 'line',
+        data: {datasets},
+        options: {
+          scales: {
+            x: {
+              type: 'time',
+              time: {
+                tooltipFormat: 'yyyy-MM-dd',
+                round: true,
+                minUnit: 'day',
+                unit: 'quarter',
+                displayFormats: { quarter: "MMMM yyyy" }
+              }
+            },
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: function (value, index, values) {
+                  return value.toLocaleString("en-US", {
+                    style: "currency", 
+                    currency: "USD", 
+                    minimumFractionDigits:2, 
+                    maximumFractionDigits:2});
+                }
+              },
+              stacked: <%= JSON.stringify(req.query.mode === "alloc") %>
+            }
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function (tooltipItem, data) {
+                  console.log(tooltipItem, data);
+                  return tooltipItem.dataset.label + ": " + tooltipItem.parsed.y.toLocaleString("en-US", {
+                    style: "currency", 
+                    currency: "USD", 
+                    minimumFractionDigits:2, 
+                    maximumFractionDigits:2});
+                }
+              }
+            }
+          },
+          interaction: {
+            mode: 'index',
+            intersect: false,
+            position: 'nearest'
+          }
+        }
+      });
+    };
+  </script>
+</head>
+<body onload="load()">
+  <% if (req.query.mode === undefined) { %>
+  <h1>knwst - Home</h1>
+  <p><%= getQuote() %></p>
+  <form action="do_rebuild" method="post">
+    <a href="holdings">View Holdings</a> -
+    <a href="realized">View Realized</a> -
+    <a href="addtx">Add Tx</a> -
+    <a href="addtransfer">Add Transfer</a> -
+    <input type="submit" value="Rebuild Data" /> -
+    <a href="<%= env.ADMINER_EXTERNAL_URL %>" target="_blank">Database</a> -
+    <a href="<%= env.ADMINER_EXTERNAL_URL %>&select=txs&order%5B0%5D=txid&desc%5B0%5D=1" target="_blank">View Txs</a> -
+    <a href="?mode=valid">Validation</a> -
+    <a href="?mode=alloc">Allocation</a>
+  </form>
+  <% } else if (req.query.mode === "valid") { %>
+  <h1>knwst - Firefly Market Validation</h1>
+  <p><a href="/">Home</a></p>
+  <% } else if (req.query.mode === "alloc") { %>
+  <h1>knwst - Investment Allocation</h1>
+  <p><a href="/">Home</a></p>
+  <% } %>
+  <div>
+    <canvas id="chart"></canvas>
+  </div>
+</body>
+</html>

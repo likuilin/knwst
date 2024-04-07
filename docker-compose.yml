@@ -1,0 +1,41 @@
+version: "3"
+services:
+  web:
+    image: node:latest
+    volumes:
+     - .:/app
+    networks:
+     - default
+     - connect-knwst-firefly
+     - nginx
+    restart: always
+    working_dir: /app/src
+    command: "bash -c 'yarn && yarn watch'"
+    environment:
+      ADMINER_EXTERNAL_URL: ${ADMINER_EXTERNAL_URL:-/adminer} # only used for handy <a href="...">
+      BROKERAGES_LIST: ${BROKERAGES_LIST:-Defi=x,IBKR=3,Fidelity=4,ETrade=5} # arbitrary name = firefly account ID or x
+  db:
+    image: mariadb:11.3.2-jammy
+    volumes:
+      - ./mariadb:/var/lib/mysql:Z
+    restart: always
+    environment:
+      MARIADB_DATABASE: knwst
+      MARIADB_USER: knwst
+      MARIADB_PASSWORD: knwst
+      MARIADB_ROOT_PASSWORD: password
+  adminer:
+    image: adminer
+    networks:
+     - default
+     - nginx
+    restart: always
+
+# nginx network is managed externally on kuilin's server
+# forwards incoming requests to containers on the network
+# your setup may vary of course
+networks:
+  nginx:
+    external: true
+  connect-knwst-firefly:
+    external: true

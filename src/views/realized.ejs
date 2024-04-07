@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+<head>
+  <title>knwst - Realized</title>
+  <style>
+    td {
+      padding: 0.3em;
+    }
+    .ar {
+      text-align: right;
+    }
+    .bold {
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>knwst - Realized</h1>
+  <p><a href="/">Home</a><% if (req.query.iras === undefined) { %> - <a href="/realized?iras">Include IRAs</a><% } %></p>
+  <table>
+  <%
+    const result = await db.query("select *, year(dispose_date) as taxyear from out_realized order by taxyear desc, brokerage asc, ticker asc");
+
+    let last_taxyear = null;
+    let total = 0;
+    function last() {
+      %><tr><td colspan="9" class="ar bold">Total Realized: <%= total.toLocaleString("en-US", {style: "currency", currency: "USD"}) %></td></tr><%
+    }
+    for (const {taxyear,brokerage,ticker,acquire_date,dispose_date,amount,basis,proceeds} of result) {
+      if (req.query.iras === undefined && brokerage.split(" ").includes("IRA")) continue;
+      if (last_taxyear !== taxyear) {
+        if (last_taxyear !== null) last();
+        %>
+          <tr><td colspan="9" class="bold" style="font-size: 1.5em;border-top: 1px solid black;">Tax Year <%= taxyear %></td></tr>
+          <tr class="bold">
+            <td>brokerage</td>
+            <td>ticker</td>
+            <td>amount</td>
+            <td>acquire_date</td>
+            <td>dispose_date</td>
+            <td>basis</td>
+            <td>proceeds</td>
+            <td>term</td>
+            <td>gains</td>
+          </tr>
+        <%
+        last_taxyear = taxyear;
+        total = 0;
+      }
+      let gains = +proceeds - +basis;
+      total += gains;
+      const threshold = new Date(acquire_date);
+      threshold.setFullYear(threshold.getFullYear() + 1);
+      threshold.setDate(threshold.getDate() + 1);
+      const longterm = dispose_date >= threshold;
+      %>
+        <tr>
+          <td><%= brokerage %></td>
+          <td><%= ticker %></td>
+          <td><%= (+amount).toLocaleString() %></td>
+          <td><%= acquire_date.toISOString().split("T")[0] %></td>
+          <td><%= dispose_date.toISOString().split("T")[0] %></td>
+          <td class="ar"><%= (+basis).toLocaleString("en-US", {style: "currency", currency: "USD"}) %></td>
+          <td class="ar"><%= (+proceeds).toLocaleString("en-US", {style: "currency", currency: "USD"}) %></td>
+          <td><%= longterm ? "long" : "" %></td>
+          <td class="ar" style="<%= gains < -0.005 ? "color: red" : "" %>"><%= gains.toLocaleString("en-US", {style: "currency", currency: "USD"}) %></td>
+        </tr>
+      <%
+    }
+    last();
+  %>
+</body>
+</html>
