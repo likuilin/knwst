@@ -14,7 +14,7 @@ const {db} = require("./db.js");
     app.use(bodyParser.urlencoded({limit: "50mb", extended: false, parameterLimit: 1000000}));
     app.set("trust proxy", 1);
 
-    app.get("/", (req, res) => res.redirect("index"));
+    app.get("/", (req, res, next) => { req.url = "/index"; next(); });
 
     const helpers = require("./helpers.js");
 
