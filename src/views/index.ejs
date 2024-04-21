@@ -10,48 +10,81 @@
   <script>
     const load = () => {
       const datasets = <%
-        const result = (await db.query("select * from out_graph where date >= (select min(date) as d from fftxs) order by date asc")).map(
+        const result = (await db.query("select * from out_graph " + (req.query.hist === undefined ? "where date >= '2022-08-19' " : "") + "order by date asc")).map(
           // convert date and all data points to floats
           row => Object.fromEntries(Object.keys(row).map(k => [k, +row[k]])));
-          
+
+        // make summation data
+        for (const row of result) {
+          row.x = row.date;
+          row.nw_brokerage = row.nw_alloc_cash + row.nw_alloc_index + row.nw_alloc_nonindex;
+          row.nw_nw = row.ff_nonbrokerage + row.nw_brokerage;
+          row.ff_nw = row.ff_nonbrokerage + row.ff_brokerage;
+
+          row.tot_alloc_cash = row.ff_nonbrokerage + row.nw_alloc_cash;
+          row.nw_exposure_other = row.nw_exposure_total + row.nw_exposure_bond;
+        }
+        
         const datasets = [];
-        // default and validation are normal line, validation adds raw data
+        // default and validation are normal line, validation adds raw data to default, allocation and exposure are stacked
         if (req.query.mode === "valid" || req.query.mode === undefined) datasets.push(
           {
             label: 'Net Worth',
-            data: result.map(({date: x, ff_no_market, yf_market}) => ({x, y: ff_no_market + yf_market}))
+            data: result.map(({x, nw_nw}) => ({x, y: nw_nw}))
           }
         );
         if (req.query.mode === "valid") datasets.push(
           {
-            label: 'ff_no_market',
-            data: result.map(({date: x, ff_no_market}) => ({x, y: ff_no_market}))
+            label: 'Net Worth (firefly)',
+            data: result.map(({x, ff_nw}) => ({x, y: ff_nw}))
           },
           {
-            label: 'ff_market',
-            data: result.map(({date: x, ff_market}) => ({x, y: ff_market}))
+            label: 'Brokerages (knwst)',
+            data: result.map(({x, nw_brokerage}) => ({x, y: nw_brokerage}))
           },
           {
-            label: 'yf_market',
-            data: result.map(({date: x, yf_market}) => ({x, y: yf_market}))
+            label: 'Brokerages (firefly)',
+            data: result.map(({x, ff_brokerage}) => ({x, y: ff_brokerage}))
           }
         );
 
-        // allocation is a stacked line chart
+        // alloc and exposure are stacked
         if (req.query.mode === "alloc") datasets.push(
           {
             label: 'Speculative',
-            data: result.map(({date: x, yf_invested_spec}) => ({x, y: yf_invested_spec})),
+            data: result.map(({x, nw_alloc_nonindex}) => ({x, y: nw_alloc_nonindex})),
             fill: 'origin'
           },
           {
             label: 'Index Funds',
-            data: result.map(({date: x, yf_invested_index}) => ({x, y: yf_invested_index})),
+            data: result.map(({x, nw_alloc_index}) => ({x, y: nw_alloc_index})),
             fill: '-1'
           },
           {
-            label: 'Cash & Other',
-            data: result.map(({date: x, ff_no_market, yf_market, yf_invested_spec, yf_invested_index}) => ({x, y: ff_no_market + yf_market - yf_invested_spec - yf_invested_index})),
+            label: 'Cash',
+            data: result.map(({x, tot_alloc_cash}) => ({x, y: tot_alloc_cash})),
+            fill: '-1'
+          }
+        );
+        if (req.query.mode === "expose") datasets.push(
+          {
+            label: 'Speculative',
+            data: result.map(({x, nw_exposure_spec}) => ({x, y: nw_exposure_spec})),
+            fill: 'origin'
+          },
+          {
+            label: 'US',
+            data: result.map(({x, nw_exposure_us}) => ({x, y: nw_exposure_us})),
+            fill: '-1'
+          },
+          {
+            label: 'World',
+            data: result.map(({x, nw_exposure_exus}) => ({x, y: nw_exposure_exus})),
+            fill: '-1'
+          },
+          {
+            label: 'Other',
+            data: result.map(({x, nw_exposure_total}) => ({x, y: nw_exposure_total})),
             fill: '-1'
           }
         );
@@ -83,7 +116,7 @@
                     maximumFractionDigits:2});
                 }
               },
-              stacked: <%= JSON.stringify(req.query.mode === "alloc") %>
+              stacked: <%= JSON.stringify(req.query.mode === "alloc" || req.query.mode === "expose") %>
             }
           },
           plugins: {
@@ -124,20 +157,25 @@
   <p><%= getQuote() %></p>
   <form action="do_rebuild" method="post">
     <a href="holdings">View Holdings</a> -
-    <a href="realized">View Realized</a> -
+    <a href="realized">View Realized</a> - || -
     <a href="addtx">Add Tx</a> -
-    <a href="addtransfer">Add Transfer</a> -
-    <input type="submit" value="Rebuild Data" /> -
+    <a href="addtransfer">Add Transfer</a> - || -
+    <input type="submit" value="Rebuild Data" /> - || -
     <a href="<%= env.ADMINER_EXTERNAL_URL %>" target="_blank">Database</a> -
-    <a href="<%= env.ADMINER_EXTERNAL_URL %>&select=txs&order%5B0%5D=txid&desc%5B0%5D=1" target="_blank">View Txs</a> -
-    <a href="?mode=valid">Validation</a> -
-    <a href="?mode=alloc">Allocation</a>
+    <a href="<%= env.ADMINER_EXTERNAL_URL %>&select=txs&order%5B0%5D=txid&desc%5B0%5D=1" target="_blank">View Txs</a> - || -
+    <a href="?hist">Historical</a> -
+    <a href="?mode=valid<%= req.query.hist !== undefined ? "&hist" : "" %>">Validation</a> -
+    <a href="?mode=alloc<%= req.query.hist !== undefined ? "&hist" : "" %>">Allocation</a> -
+    <a href="?mode=expose<%= req.query.hist !== undefined ? "&hist" : "" %>">Exposure</a>
   </form>
   <% } else if (req.query.mode === "valid") { %>
   <h1>knwst - Firefly Market Validation</h1>
   <p><a href="/">Home</a></p>
   <% } else if (req.query.mode === "alloc") { %>
   <h1>knwst - Investment Allocation</h1>
+  <p><a href="/">Home</a></p>
+  <% } else if (req.query.mode === "expose") { %>
+  <h1>knwst - Market Exposure</h1>
   <p><a href="/">Home</a></p>
   <% } %>
   <div>
