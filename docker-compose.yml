@@ -13,7 +13,6 @@ services:
     command: "bash -c 'yarn && yarn watch'"
     environment:
       ADMINER_EXTERNAL_URL: ${ADMINER_EXTERNAL_URL:-/adminer} # only used for handy <a href="...">
-      BROKERAGES_LIST: ${BROKERAGES_LIST:-Defi=x,IBKR=3,Fidelity=4,ETrade=5} # arbitrary name = firefly account ID or x
   db:
     image: mariadb:11.3.2-jammy
     volumes:
