@@ -3,10 +3,10 @@
 SET NAMES utf8;
 SET time_zone = '+00:00';
 SET foreign_key_checks = 0;
-SET sql_mode = 'NO_AUTO_VALUE_ON_ZERO';
 
 SET NAMES utf8mb4;
 
+DROP DATABASE IF EXISTS `knwst`;
 CREATE DATABASE `knwst` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci */;
 USE `knwst`;
 
@@ -24,6 +24,14 @@ CREATE TABLE `fftxs` (
   `date` date NOT NULL,
   `amount` decimal(50,4) NOT NULL,
   `brokerage` tinyint(1) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+
+DROP TABLE IF EXISTS `hist_notes`;
+CREATE TABLE `hist_notes` (
+  `date` date NOT NULL,
+  `yvalue` int(11) NOT NULL,
+  `note` text NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 
@@ -89,7 +97,7 @@ CREATE TABLE `tickers` (
   `ticker` varchar(100) NOT NULL,
   `ticker_type` varchar(10) NOT NULL,
   `price_override` decimal(50,4) DEFAULT NULL,
-  `out_price` decimal(50,4) DEFAULT NULL,
+  `out_price` decimal(64,18) DEFAULT NULL,
   `exposure_type` varchar(10) NOT NULL DEFAULT 'spec',
   `exposure_factor` int(11) NOT NULL DEFAULT 1,
   `allocation_index` tinyint(1) NOT NULL DEFAULT 0
@@ -115,7 +123,7 @@ CREATE TABLE `txs` (
   `confirm_comment` text NOT NULL DEFAULT '',
   PRIMARY KEY (`txid`),
   KEY `date` (`date`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1027 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 
 DROP TABLE IF EXISTS `yfdata`;
@@ -129,4 +137,4 @@ CREATE TABLE `yfdata` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 
--- 2024-04-21 10:07:25
+-- 2024-04-27 09:44:26

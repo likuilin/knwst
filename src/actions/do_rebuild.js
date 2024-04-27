@@ -57,8 +57,6 @@ module.exports = async (req, res) => {
   await db.query("truncate table fftxs;");
   await db.batch("insert into fftxs (date, amount, brokerage) values (?, ?, ?)", fftxs.map(({date, net, brokerage}) => [date, net, brokerage]));
 
-  out += "Firefly total net worth: " + fftxs.reduce((a, e) => a+(+e.net), 0).toFixed(2) + "\n\n";
-
   // == truncate output tables ==
   await db.query("truncate table out_graph;");
   await db.query("truncate table out_holdings;");
@@ -164,13 +162,13 @@ module.exports = async (req, res) => {
 
       if (price === 0n) throw new Error("Zero price");
       if (!yf_cache[ticker][+d]) {
-        yf_add.push([ticker, d, fixToS(price, 18), implied]);
+        if (+d !== +today) yf_add.push([ticker, d, fixToS(price, 18), implied]);
         yf_cache[ticker][+d] = {price, implied};
       } else if (yf_cache[ticker][+d].price !== price) {
         // price mismatch!
         if (yf_cache[ticker][+d].implied) {
           // if the old price was implied, then that's fine, just replace it
-          yf_add.push([ticker, d, fixToS(price, 18), implied]);
+          if (+d !== +today) yf_add.push([ticker, d, fixToS(price, 18), implied]);
           yf_cache[ticker][+d] = {price, implied};
         } else {
           // otherwise uh, oh no
@@ -201,7 +199,7 @@ module.exports = async (req, res) => {
   const realized = []; // {id, brokerage, ticker, acquire_date, dispose_date, amount, basis, notes, proceeds}
 
   let fftxi = 0; txi = 0;
-  for (let date=new Date(Math.min(fftxs[0].date, txs[0].date)); date<today; date=addDate(date)) {
+  for (let date=new Date(Math.min(fftxs[0].date, txs[0].date)); date<=today; date=addDate(date)) {
     const date_str = date.toISOString().split("T")[0];
 
     // process fftxs until we are done with today
@@ -531,6 +529,13 @@ module.exports = async (req, res) => {
     }
 
     graph.push([date, ...graph_headers.map(k => fixToS(graph_now[k]))]);
+  }
+
+  {
+    const [date, ff_nonbrokerage, ff_brokerage, nw_alloc_cash, nw_alloc_index, nw_alloc_nonindex, ..._] = graph[graph.length-1].map(e=>+e);
+    out += "ff nw check: " + fftxs.reduce((a, e) => a+(+e.net), 0).toFixed(2) + "\n\n";
+    out += "ff nw graph: " + (ff_nonbrokerage + ff_brokerage).toFixed(2) + "\n";
+    out += "calculated:  " + (ff_nonbrokerage + nw_alloc_cash + nw_alloc_nonindex + nw_alloc_index).toFixed(2) + "\n\n";
   }
 
   await db.batch("insert into out_graph (date, " + graph_headers.join(", ") + ") values (?" + ", ?".repeat(graph_headers.length) + ")", graph);
