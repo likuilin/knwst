@@ -21,22 +21,28 @@
   <%
     const result = await db.query(
       req.query.taxlots === undefined ?
-        "select brokerage, ticker, txids, shorted, min(open_date) as open_date, sum(amount) as amount, sum(basis) as basis, sum(value) as value from out_holdings group by brokerage, ticker, shorted order by brokerage asc, ticker desc" :
-        "select brokerage, ticker, txids, shorted, open_date, amount, basis, value from out_holdings order by brokerage asc, ticker desc, open_date asc"
+        "select brokerage, ticker, id, shorted, min(open_date) as open_date, sum(amount) as amount, sum(basis) as basis, sum(cur_value) as cur_value from out_holdings group by brokerage, ticker, shorted order by brokerage asc, ticker desc" :
+        "select brokerage, ticker, id, shorted, open_date, amount, basis, cur_value from out_holdings order by brokerage asc, ticker desc, open_date asc"
       );
 
-    function last() {
-      %><tr><td colspan="8" class="ar bold">Total Value: <%= total.toLocaleString("en-US", {style: "currency", currency: "USD"}) %></td></tr><%
-    }
+    const brokerages = Object.fromEntries((await db.query("select brokerage, out_cash from brokerages")).map(({brokerage, out_cash}) => [brokerage, out_cash]));
 
-    let last_brokerage = null;
     let total = 0;
     let grandtotal = 0;
-    for (const {brokerage,ttype,ticker,txids,shorted,open_date,amount,basis,value} of result) {
+    let last_brokerage = null;
+
+    function last() {
+      const amount = brokerages[last_brokerage];
+      total += +amount;
+      grandtotal += +amount;
+      %>
+      <tr><td colspan="4">== cash ==</td><td class="ar"><%= (+amount).toLocaleString("en-US", {style: "currency", currency: "USD"}) %></td><td></td></tr>
+      <tr><td colspan="8" class="ar bold">Total Value: <%= total.toLocaleString("en-US", {style: "currency", currency: "USD"}) %></td></tr><%
+    }
+
+    for (const {brokerage,ttype,ticker,id,shorted,open_date,amount,basis,cur_value} of result) {
       if (last_brokerage !== brokerage) {
-        // new brokerage - this is janky lol
-        // assume there are no tickers after cash, if it has no cash too then skip
-        if (ticker === "==CASH==" && +amount === 0) continue;
+        // new brokerage - this is so janky lol
         if (last_brokerage !== null) {
           last();
         }
@@ -47,30 +53,23 @@
             <td>open_date</td>
             <td>amount</td>
             <td>basis</td>
-            <td>value</td>
+            <td>cur_value</td>
             <td>gains</td>
           </tr>
         <%
         last_brokerage = brokerage;
         total = 0;
       }
-      // handle cash line
-      if (ticker === "==CASH==") {
-        total += +amount;
-        grandtotal += +amount;
-        %><tr><td colspan="4">== cash ==</td><td class="ar"><%= (+amount).toLocaleString("en-US", {style: "currency", currency: "USD"}) %></td><td></td></tr><%
-        continue;
-      }
-      total += +value;
-      grandtotal += +value;
+      total += +cur_value;
+      grandtotal += +cur_value;
       %>
         <tr>
           <td><%= ticker + (shorted ? " (short)" : "") %></td>
           <td><%= open_date ? open_date.toISOString().split("T")[0] : "" %></td>
           <td class="ar"><%= (+amount).toLocaleString() %></td>
           <td class="ar"><%= basis ? (+basis).toLocaleString("en-US", {style: "currency", currency: "USD"}) : "" %></td>
-          <td class="ar"><%= value ? (+value).toLocaleString("en-US", {style: "currency", currency: "USD"}) : "" %></td>
-          <td class="ar"><%= (value && basis) ? (value-basis).toLocaleString("en-US", {style: "currency", currency: "USD"}) : "" %></td>
+          <td class="ar"><%= cur_value ? (+cur_value).toLocaleString("en-US", {style: "currency", currency: "USD"}) : "" %></td>
+          <td class="ar"><%= (cur_value && basis) ? (cur_value-basis).toLocaleString("en-US", {style: "currency", currency: "USD"}) : "" %></td>
         </tr>
       <%
     }

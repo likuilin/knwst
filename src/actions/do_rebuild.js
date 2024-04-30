@@ -162,7 +162,9 @@ module.exports = async (req, res) => {
 
       if (price === 0n) throw new Error("Zero price");
       if (!yf_cache[ticker][+d]) {
-        if (+d !== +today) yf_add.push([ticker, d, fixToS(price, 18), implied]);
+        // only save if it's not today or yesterday (24h tickers)
+        // TODO figure this out, when do prices change?
+        yf_add.push([ticker, d, fixToS(price, 18), implied]);
         yf_cache[ticker][+d] = {price, implied};
       } else if (yf_cache[ticker][+d].price !== price) {
         // price mismatch!
@@ -172,9 +174,15 @@ module.exports = async (req, res) => {
           yf_cache[ticker][+d] = {price, implied};
         } else {
           // otherwise uh, oh no
+          /*
           throw new Error("Downloaded price does not match cached price for " + ticker + " " + d.toISOString().split("T")[0] + "." +
-            " / Cached: " + fixToS(yf_cache[ticker][+d].price, 18, true) + " implied=" + yf_cache[ticker][+d].implied) +
-            " / Downloaded: " + fixToS(price, 18, true) + " implied=" + implied;
+            " / Cached: " + fixToS(yf_cache[ticker][+d].price, 18, true) + " implied=" + yf_cache[ticker][+d].implied +
+            " / Downloaded: " + fixToS(price, 18, true) + " implied=" + implied);
+          */
+          out += "Downloaded price does not match cached price for " + ticker + " " + d.toISOString().split("T")[0] + "." +
+            " / Cached: " + fixToS(yf_cache[ticker][+d].price, 18, true) + " implied=" + yf_cache[ticker][+d].implied +
+            " / Downloaded: " + fixToS(price, 18, true) + " implied=" + implied + "\n";
+          return price;
         }
       }
     }
