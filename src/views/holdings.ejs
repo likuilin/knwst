@@ -37,7 +37,7 @@
       grandtotal += +amount;
       %>
       <tr><td colspan="4">== cash ==</td><td class="ar"><%= (+amount).toLocaleString("en-US", {style: "currency", currency: "USD"}) %></td><td></td></tr>
-      <tr><td colspan="8" class="ar bold">Total Value: <%= total.toLocaleString("en-US", {style: "currency", currency: "USD"}) %></td></tr><%
+      <tr><td colspan="5" class="ar bold">Total Value: <%= total.toLocaleString("en-US", {style: "currency", currency: "USD"}) %></td><td></td></tr><%
     }
 
     for (const {brokerage,ttype,ticker,id,shorted,open_date,amount,basis,cur_value} of result) {

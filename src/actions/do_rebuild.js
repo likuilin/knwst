@@ -9,10 +9,10 @@ module.exports = async (req, res) => {
 
   // firefly and pre-firefly transactions
   // latter will be sorta hacky
-  let fftxs = [];
+  let alltxs = [];
 
   // == grab preff_txs and checksum ==
-  fftxs = await db.query('select date, sum(amount) as net, acct="Chase Brokerage" as brokerage from pre_fftxs group by date, brokerage order by date asc;');
+  alltxs = await db.query('select date, sum(amount) as net, acct="Chase Brokerage" as brokerage from pre_fftxs group by date, brokerage order by date asc;');
 
   // == connect to firefly db and pull fftxs ==
   {
@@ -40,22 +40,22 @@ module.exports = async (req, res) => {
     fftxs_db = fftxs_db.map(({date, net, brokerage}) => ({date, net, brokerage}));
 
     // check initial deposits with pre_fftxs data
-    const ff_transition_date = fftxs[fftxs.length-1].date;
+    const ff_transition_date = alltxs[alltxs.length-1].date;
     const totals = [0n, 0n];
-    for (const {net, brokerage} of fftxs) totals[+brokerage] += sToFix(net);
+    for (const {net, brokerage} of alltxs) totals[+brokerage] += sToFix(net);
     // first tx is non-brokerage, must match, will be deleted
     if (+fftxs_db[0].date !== +ff_transition_date || sToFix(fftxs_db[0].net) !== totals[0] || fftxs_db[0].brokerage !== 0) throw new Error();
     // second tx is brokerage, difference is added as one tx
     if (+fftxs_db[1].date !== +ff_transition_date || fftxs_db[1].brokerage !== 1) throw new Error();
     fftxs_db[1].net = fixToS(sToFix(fftxs_db[1].net) - totals[1]);
 
-    // add rest to fftxs
-    fftxs = fftxs.concat(fftxs_db.slice(1));
-  }
+    // out_fftxs is for display/debug
+    await db.query("truncate table out_fftxs;");
+    await db.batch("insert into out_fftxs (date, amount, brokerage) values (?, ?, ?)", fftxs_db.map(({date, net, brokerage}) => [date, net, brokerage]));
 
-  // fftxs table isn't used for anything by the way - could just get rid of it
-  await db.query("truncate table fftxs;");
-  await db.batch("insert into fftxs (date, amount, brokerage) values (?, ?, ?)", fftxs.map(({date, net, brokerage}) => [date, net, brokerage]));
+    // add rest to alltxs
+    alltxs = alltxs.concat(fftxs_db.slice(1));
+  }
 
   // == truncate output tables ==
   await db.query("truncate table out_graph;");
@@ -182,7 +182,8 @@ module.exports = async (req, res) => {
           out += "Downloaded price does not match cached price for " + ticker + " " + d.toISOString().split("T")[0] + "." +
             " / Cached: " + fixToS(yf_cache[ticker][+d].price, 18, true) + " implied=" + yf_cache[ticker][+d].implied +
             " / Downloaded: " + fixToS(price, 18, true) + " implied=" + implied + "\n";
-          return price;
+          // set the price anyways
+          yf_cache[ticker][+d] = {price, implied};
         }
       }
     }
@@ -206,14 +207,14 @@ module.exports = async (req, res) => {
   const holdings = []; // {id, brokerage, ticker, shorted, open_date, amount, basis, notes}
   const realized = []; // {id, brokerage, ticker, acquire_date, dispose_date, amount, basis, notes, proceeds}
 
-  let fftxi = 0; txi = 0;
-  for (let date=new Date(Math.min(fftxs[0].date, txs[0].date)); date<=today; date=addDate(date)) {
+  let alltxi = 0; txi = 0;
+  for (let date=new Date(Math.min(alltxs[0].date, txs[0].date)); date<=today; date=addDate(date)) {
     const date_str = date.toISOString().split("T")[0];
 
-    // process fftxs until we are done with today
-    for (;fftxi < fftxs.length && +fftxs[fftxi].date <= +date; fftxi++) {
-      if (fftxs[fftxi].date - date !== 0) throw new Error();
-      const {net, brokerage} = fftxs[fftxi];
+    // process alltxs until we are done with today
+    for (;alltxi < alltxs.length && +alltxs[alltxi].date <= +date; alltxi++) {
+      if (alltxs[alltxi].date - date !== 0) throw new Error();
+      const {net, brokerage} = alltxs[alltxi];
       if (brokerage) graph_ff.ff_brokerage += sToFix(net);
       else graph_ff.ff_nonbrokerage += sToFix(net);
     }
@@ -541,7 +542,7 @@ module.exports = async (req, res) => {
 
   {
     const [date, ff_nonbrokerage, ff_brokerage, nw_alloc_cash, nw_alloc_index, nw_alloc_nonindex, ..._] = graph[graph.length-1].map(e=>+e);
-    out += "ff nw check: " + fftxs.reduce((a, e) => a+(+e.net), 0).toFixed(2) + "\n\n";
+    out += "ff nw check: " + alltxs.reduce((a, e) => a+(+e.net), 0).toFixed(2) + "\n\n";
     out += "ff nw graph: " + (ff_nonbrokerage + ff_brokerage).toFixed(2) + "\n";
     out += "calculated:  " + (ff_nonbrokerage + nw_alloc_cash + nw_alloc_nonindex + nw_alloc_index).toFixed(2) + "\n\n";
   }

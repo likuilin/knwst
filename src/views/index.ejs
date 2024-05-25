@@ -193,8 +193,8 @@
           %> - <a href="<%=link%>"><%=text%></a><%
         }
       }
-      header_switch("Historical", false, !hist, mode);
       header_switch("Home", mode === "nw", hist, "nw");
+      header_switch("Historical", false, !hist, mode);
       header_switch("Validation", mode === "valid", hist, "valid");
       %> - ||<%
       header_switch("Market PnL", mode === "pnl", hist, "pnl");
