@@ -21,8 +21,8 @@
   <%
     const result = await db.query(
       req.query.taxlots === undefined ?
-        "select brokerage, ticker, id, shorted, min(open_date) as open_date, sum(amount) as amount, sum(basis) as basis, sum(cur_value) as cur_value from out_holdings group by brokerage, ticker, shorted order by brokerage asc, ticker desc" :
-        "select brokerage, ticker, id, shorted, open_date, amount, basis, cur_value from out_holdings order by brokerage asc, ticker desc, open_date asc"
+        "select brokerage, ticker, lot_id as id, shorted, min(open_date) as open_date, sum(amount) as amount, sum(basis) as basis, sum(cur_value) as cur_value from out_holdings group by brokerage, ticker, shorted order by brokerage asc, ticker desc" :
+        "select brokerage, ticker, lot_id as id, shorted, open_date, amount, basis, cur_value from out_holdings order by brokerage asc, ticker desc, open_date asc"
       );
 
     const brokerages = Object.fromEntries((await db.query("select brokerage, out_cash from brokerages")).map(({brokerage, out_cash}) => [brokerage, out_cash]));

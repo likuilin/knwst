@@ -548,10 +548,10 @@ module.exports = async (req, res) => {
   }
 
   await db.batch("insert into out_graph (date, " + graph_headers.join(", ") + ") values (?" + ", ?".repeat(graph_headers.length) + ")", graph);
-  await db.batch("insert into out_holdings (id, brokerage, ticker, shorted, open_date, amount, basis, notes, cur_value) values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  await db.batch("insert into out_holdings (lot_id, brokerage, ticker, shorted, open_date, amount, basis, notes, cur_value) values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
     holdings.map(({id, brokerage, ticker, shorted, open_date, amount, basis, notes, cur_value}) =>
       [id, brokerage, ticker, shorted, open_date, fixToS(amount, 18), fixToS(basis), notes, fixToS(cur_value.v)]));
-  await db.batch("insert into out_realized (id, brokerage, ticker, acquire_date, dispose_date, amount, basis, notes, proceeds) values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  await db.batch("insert into out_realized (lot_id, brokerage, ticker, acquire_date, dispose_date, amount, basis, notes, proceeds) values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
     realized.map(({id, brokerage, ticker, acquire_date, dispose_date, amount, basis, notes, proceeds}) =>
       [id, brokerage, ticker, acquire_date, dispose_date, fixToS(amount, 18), fixToS(basis), notes, fixToS(proceeds)]));
   for (const b of Object.keys(brokerages)) await db.query("update brokerages set out_cash=? where brokerage=?;", [fixToS(brokerages[b].out_cash), b]);
