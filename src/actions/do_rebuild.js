@@ -99,7 +99,7 @@ module.exports = async (req, res) => {
   // switch for redownloading all prices even if we don't need them
   // if it's a new day, stuff from last cached to today will be redownloaded anyways for current holdings
   // but for past holdings this could be a lot of calls
-  const REDOWNLOAD_PRICES = false;
+  const REDOWNLOAD_PRICES = true;
 
   const yf_downloaded = {}; // bool, downloaded this run
   const yf_cache = {}; // prices by ticker and date (num)
@@ -124,11 +124,13 @@ module.exports = async (req, res) => {
 
     // fetch from yahoo starting backwards by a week
     const dl_date = addDate(date, -7);
+    const tomorrow = addDate(today, 3); // sigh, this has got to be fixed in a better way
 
     let dl;
     try {
       console.log("Downloading", ticker, dl_date);
-      dl = await yf.historical(ticker, {period1: dl_date, events: ""});
+      dl = await yf.chart(ticker, {period1: dl_date, events: ""});
+dl = dl.quotes;
       console.log(" - Downloaded", dl.length, dl[0].date.toISOString().split("T")[0], dl[dl.length-1].date.toISOString().split("T")[0])
       yf_downloaded[ticker] = true;
     } catch (e) {
@@ -145,20 +147,24 @@ module.exports = async (req, res) => {
     if (!dl.length) throw new Error("Zero downloaded for " + ticker + " " + date);
     if (!yf_cache[ticker]) yf_cache[ticker] = {};
     let price = 0n; // last price
-    for (let d=dl[0].date, i=0; +d <= +today; d=addDate(d, 1)) {
+    for (let d=dl[0].date, i=0; +d <= +tomorrow; d=addDate(d, 1)) {
       let implied;
-      if (i < dl.length && +dl[i].date === +d) {
+      while (i < dl.length && !dl[i].close) i++;
+      if (i < dl.length && new Date(+dl[i].date).toISOString().split("T")[0] === new Date(+d).toISOString().split("T")[0]) {
         // has price for date
         // close is a js float, sigh, let's just assume toString doesn't make it scientific notation
         const [a, b=""] = dl[i].close.toString().split(".");
         if (b.length > 18) throw new Error("todo");
-        price = sToFix(a + "." + b.padEnd(18, "0"), 18);
-        implied = false;
+        let p = sToFix(a + "." + b.padEnd(18, "0"), 18);
+if (p !== 0n) {
+  price = p;
+  implied = false;
+}
         i++;
       } else if (i >= dl.length || +dl[i].date > +d) {
         // next priced day is in the future or we ran out of dates, use implied price for today
         implied = true;
-      } else throw new Error("Yahoo dates are not strictly increasing?");
+      } else throw new Error("Yahoo dates are not strictly increasing? " + ticker + "\n" + JSON.stringify(dl[i-1]) + "\n" + JSON.stringify(dl[i]));
 
       if (price === 0n) throw new Error("Zero price");
       if (!yf_cache[ticker][+d]) {
