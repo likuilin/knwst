@@ -18,6 +18,7 @@ const {db} = require("./db.js");
 
     const helpers = require("./helpers.js");
 
+    // register views
     for (let page of fs.readdirSync("views")) {
         if (!page.endsWith(".ejs")) continue;
         app.get("/" + page.slice(0, -4), (req, res, next) => {
@@ -31,6 +32,7 @@ const {db} = require("./db.js");
         });
     }
 
+    // register actions
     for (let page of fs.readdirSync("actions")) {
         console.log(page);
         if (!page.endsWith(".js")) continue;
@@ -40,6 +42,9 @@ const {db} = require("./db.js");
             })().then(() => next()).catch((err) => next(err));
         });
     }
+
+    // register semantic dep, serve entire submodule
+    app.use("/semantic/dist", express.static("../semantic"));
 
     await new Promise(resolve => app.listen(3000, () => resolve()));
     console.log("Listening on port 3000");

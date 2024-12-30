@@ -1,209 +1,290 @@
 <!doctype html>
 <html>
-<head>
-  <%
-    const hist = req.query.hist !== undefined;
-    const mode = req.query.mode || "nw";
-    const mode_text = ({nw: "Home", valid: "Firefly Validation", pnl: "Market PnL", alloc: "Asset Allocation", expose: "Market Exposure"})[mode];
-    if (!mode_text) throw new Error("Unknown mode");
-  %>
-  <title>knwst - <%=mode_text%></title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
-  <style>
-    a:visited{ color: blue; }
-  </style>
-  <script>
-    const load = () => {
-      const datasets = <%
-        
-        const result = (await db.query("select * from out_graph " + (hist ? "" : "where date >= '2022-08-19' ") + "order by date asc"))
-          // convert date and all data points to floats
-          .map(row => Object.fromEntries(Object.keys(row).map(k => [k, +row[k]])));
+  <head>
+    <title>knwst - Home</title>
+    <link rel="stylesheet" type="text/css" href="semantic/dist/semantic.min.css">
+    <script
+      src="https://code.jquery.com/jquery-3.1.1.min.js"
+      integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
+      crossorigin="anonymous"></script>
+    <script src="semantic/dist/semantic.min.js"></script>
 
-        const notes = !(hist && mode === "nw") ? {} : {annotation: {annotations: Object.fromEntries(
-          (await db.query("select * from hist_notes;"))
-            .map(({date, yvalue, note}, i) => ["label" + (i-3), {
-              type: "label",
-              xValue: date,
-              yValue: yvalue,
-              position: 'start',
-              content: note.split("\n"),
-              font: {},
-              textAlign: "left"
-            }])
-        )}};
-
-        // make summation data
-        for (const row of result) {
-          row.x = row.date;
-          row.nw_nw = row.ff_nonbrokerage + row.nw_alloc_cash + row.nw_alloc_index + row.nw_alloc_nonindex;
-          row.ff_nw = row.ff_nonbrokerage + row.ff_brokerage;
-
-          row.tot_alloc_cash = row.ff_nonbrokerage + row.nw_alloc_cash;
-          row.nw_exposure_other = row.nw_exposure_total + row.nw_exposure_bond;
-        }
-        
-        const datasets = [];
-        // default and validation are normal line, validation adds raw data to default, allocation and exposure are stacked
-        if (mode === "valid" || mode === "nw") datasets.push(
-          {
-            label: 'Net Worth',
-            data: result.map(({x, nw_nw}) => ({x, y: nw_nw}))
-          }
-        );
-        if (mode === "valid") datasets.push(
-          {
-            label: 'Net Worth (firefly)',
-            data: result.map(({x, ff_nw}) => ({x, y: ff_nw}))
-          }
-        );
-
-        // alloc and exposure are stacked
-        if (mode === "alloc") datasets.push(
-          {
-            label: 'Speculative',
-            data: result.map(({x, nw_alloc_nonindex}) => ({x, y: nw_alloc_nonindex})),
-            fill: 'origin'
-          },
-          {
-            label: 'Index Funds',
-            data: result.map(({x, nw_alloc_index}) => ({x, y: nw_alloc_index})),
-            fill: '-1'
-          },
-          {
-            label: 'Cash',
-            data: result.map(({x, tot_alloc_cash}) => ({x, y: tot_alloc_cash})),
-            fill: '-1'
-          }
-        );
-        if (mode === "expose") datasets.push(
-          {
-            label: 'Speculative',
-            data: result.map(({x, nw_exposure_spec}) => ({x, y: nw_exposure_spec})),
-            fill: 'origin'
-          },
-          {
-            label: 'US',
-            data: result.map(({x, nw_exposure_us}) => ({x, y: nw_exposure_us})),
-            fill: '-1'
-          },
-          {
-            label: 'World',
-            data: result.map(({x, nw_exposure_exus}) => ({x, y: nw_exposure_exus})),
-            fill: '-1'
-          },
-          {
-            label: 'Other',
-            data: result.map(({x, nw_exposure_total}) => ({x, y: nw_exposure_total})),
-            fill: '-1'
-          }
-        );
-        %><%- JSON.stringify(datasets) %>;
-
-      new Chart(document.getElementById("chart"), {
-        type: 'line',
-        data: {datasets},
-        options: {
-          maintainAspectRatio: false,
-          scales: {
-            x: {
-              type: 'time',
-              time: {
-                tooltipFormat: 'yyyy-MM-dd',
-                round: true,
-                minUnit: 'day',
-                unit: 'quarter',
-                displayFormats: { quarter: "MMMM yyyy" }
-              }
-            },
-            y: {
-              beginAtZero: true,
-              ticks: {
-                callback: function (value, index, values) {
-                  return value.toLocaleString("en-US", {
-                    style: "currency", 
-                    currency: "USD", 
-                    minimumFractionDigits:2, 
-                    maximumFractionDigits:2});
-                }
-              },
-              stacked: <%- JSON.stringify(mode === "alloc" || mode === "expose") %>
-            }
-          },
-          plugins: {
-            tooltip: {
-              callbacks: {
-                label: function (tooltipItem, data) {
-                  return tooltipItem.dataset.label + ": " + tooltipItem.parsed.y.toLocaleString("en-US", {
-                    style: "currency", 
-                    currency: "USD", 
-                    minimumFractionDigits:2, 
-                    maximumFractionDigits:2});
-                }
-              }
-            },
-            ...<%- JSON.stringify(notes) %>
-          },
-          interaction: {
-            mode: 'index',
-            intersect: false,
-            position: 'nearest'
-          },
-          normalized: true,
-          animation: false,
-          spanGaps: true,
-          elements: {
-            point: {
-              radius: 0
-            }
-          }
-        }
+    <script>
+      $(()=>{
+        $('#sm-sidebar').sidebar('attach events', '.launch.item');
       });
-    };
-  </script>
-  <style>
-    html, body {
-      height: 100vh;
-      margin: 0;
-    }
-    body {
-      display: flex;
-      flex-direction: column;
-    }
-  </style>
-</head>
-<body onload="load()">
-  <h1>knwst - <%=mode_text%></h1>
-  <p><%= getQuote() %></p>
-  <form action="do_rebuild" method="post">
-    <a href="holdings">Holdings</a> -
-    <a href="realized">Realized</a> - || -
-    <input type="submit" value="Rebuild" /> -
-    <a href="<%= env.ADMINER_EXTERNAL_URL %>&select=txs&order%5B0%5D=txid&desc%5B0%5D=1" target="_blank">Database</a> - ||
-    <% {
-      function header_switch(text, selected, new_hist, new_mode) {
-        let link = "?" + (new_hist ? "hist&" : "") + "mode=" + new_mode;
-        if (link === "?mode=nw") link = ".";
+    </script>
+    <style>
+      /* below extracted from https://github.com/Semantic-Org/Semantic-UI-Docs */
 
-        if (selected) {
-          %> - <%=text%><%
-        } else {
-          %> - <a href="<%=link%>"><%=text%></a><%
+      /* container max width tweaks */
+      .main .container {
+        margin-left: 3em !important;
+        margin-right: 3em !important;
+        width: auto !important;
+      }
+
+      /* double sidebar all the way */
+      #sm-menu {
+        visibility: hidden;
+      }
+      #lg-sidebar {
+        position: fixed;
+        z-index: 1;
+        min-height: 100vh;
+      }
+      .main {
+        margin-left: 15rem;
+      }
+
+      @media only screen and (max-width: 1144px) {
+        #sm-menu {
+          visibility: visible;
+        }
+        #lg-sidebar {
+          visibility: hidden;
+        }
+        .main {
+          margin-left: 0px;
+          padding-top: 3em;
         }
       }
-      header_switch("Historical", false, !hist, mode);
-      header_switch("Home", mode === "nw", hist, "nw");
-      header_switch("Validation", mode === "valid", hist, "valid");
-      %> - ||<%
-      header_switch("Market PnL", mode === "pnl", hist, "pnl");
-      header_switch("Allocation", mode === "alloc", hist, "alloc");
-      header_switch("Exposure", mode === "expose", hist, "expose");
-    } %>
-  </form>
-  <div style="flex: 1; aspect-ratio: 16 / 9; max-height: 60vw; width: 100vw;">
-    <canvas id="chart"></canvas>
+    </style>
+  </head>
+  <body id="example">
+    <div class="ui vertical inverted sidebar menu" id="sm-sidebar">
+      <a class="item" href="/">
+        <b>Home</b>
+      </a>
+      <a class="item" href="/watchlist">
+        <b>Watchlist</b>
+      </a>
+      <div class="item">
+        <div class="header">View</div>
+        <div class="menu">
+          <a class="item" href="/todo">
+            Transactions
+          </a>
+          <a class="item" href="/todo">
+            Asset Accounts
+          </a>
+        </div>
+      </div>
+      <div class="item">
+        <div class="header">Reconciliation</div>
+        <div class="menu">
+          <a class="item" href="/todo">
+            Transactions
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="ui inverted fixed menu" id="sm-menu">
+      <a class="launch icon item">
+        <i class="content icon"></i>
+      </a>
+      
+      <div class="item">
+        Tableaaaaaaaaa
+      </div>
+    </div>
+
+  <div class="pusher">
+    <div class="ui vertical inverted menu" id="lg-sidebar">
+      <a class="item" href="/">
+        <b>Home</b>
+      </a>
+      <a class="item" href="/watchlist">
+        <b>Watchlist</b>
+      </a>
+      <div class="item">
+        <div class="header">View</div>
+        <div class="menu">
+          <a class="item" href="/todo">
+            Transactions
+          </a>
+          <a class="item" href="/todo">
+            Asset Accounts
+          </a>
+        </div>
+      </div>
+      <div class="item">
+        <div class="header">Reconciliation</div>
+        <div class="menu">
+          <a class="item" href="/todo">
+            Transactions
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="main">
+      <div class="ui masthead vertical segment">
+        <div class="ui container">
+          <div class="introduction">
+            <h1 class="ui header">
+              Table
+            </h1>
+          </div>
+        </div>
+        <div class="ui container">
+          <table class="ui celled table unstackable">
+            <thead>
+              <th>Name</th>
+              <th>Age</th>
+              <th>Job</th>
+            </thead>
+            <tbody>
+              <tr>
+                <td data-label="Name">James</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Engineer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Jill</td>
+                <td data-label="Age">26</td>
+                <td data-label="Job">Engineer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+              <tr>
+                <td data-label="Name">Elyse</td>
+                <td data-label="Age">24</td>
+                <td data-label="Job">Designer</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
 </body>
 </html>
