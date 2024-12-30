@@ -6,7 +6,6 @@ services:
      - .:/app
     networks:
      - default
-     - connect-knwst-firefly
      - nginx
     restart: always
     working_dir: /app/src
@@ -28,6 +27,10 @@ services:
     networks:
      - default
      - nginx
+    environment: 
+      ADMINER_PLUGINS: adminer-bypass
+    volumes:
+      - ./adminer-bypass.php:/var/www/html/plugins/adminer-bypass.php:ro
     restart: always
 
 # nginx network is managed externally on kuilin's server
@@ -35,6 +38,4 @@ services:
 # your setup may vary of course
 networks:
   nginx:
-    external: true
-  connect-knwst-firefly:
     external: true
