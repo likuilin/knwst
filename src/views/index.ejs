@@ -1,290 +1,165 @@
-<!doctype html>
-<html>
-  <head>
-    <title>knwst - Home</title>
-    <link rel="stylesheet" type="text/css" href="semantic/dist/semantic.min.css">
-    <script
-      src="https://code.jquery.com/jquery-3.1.1.min.js"
-      integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
-      crossorigin="anonymous"></script>
-    <script src="semantic/dist/semantic.min.js"></script>
-
-    <script>
-      $(()=>{
-        $('#sm-sidebar').sidebar('attach events', '.launch.item');
-      });
-    </script>
-    <style>
-      /* below extracted from https://github.com/Semantic-Org/Semantic-UI-Docs */
-
-      /* container max width tweaks */
-      .main .container {
-        margin-left: 3em !important;
-        margin-right: 3em !important;
-        width: auto !important;
-      }
-
-      /* double sidebar all the way */
-      #sm-menu {
-        visibility: hidden;
-      }
-      #lg-sidebar {
-        position: fixed;
-        z-index: 1;
-        min-height: 100vh;
-      }
-      .main {
-        margin-left: 15rem;
-      }
-
-      @media only screen and (max-width: 1144px) {
-        #sm-menu {
-          visibility: visible;
-        }
-        #lg-sidebar {
-          visibility: hidden;
-        }
-        .main {
-          margin-left: 0px;
-          padding-top: 3em;
-        }
-      }
-    </style>
-  </head>
-  <body id="example">
-    <div class="ui vertical inverted sidebar menu" id="sm-sidebar">
-      <a class="item" href="/">
-        <b>Home</b>
-      </a>
-      <a class="item" href="/watchlist">
-        <b>Watchlist</b>
-      </a>
-      <div class="item">
-        <div class="header">View</div>
-        <div class="menu">
-          <a class="item" href="/todo">
-            Transactions
-          </a>
-          <a class="item" href="/todo">
-            Asset Accounts
-          </a>
-        </div>
-      </div>
-      <div class="item">
-        <div class="header">Reconciliation</div>
-        <div class="menu">
-          <a class="item" href="/todo">
-            Transactions
-          </a>
-        </div>
-      </div>
-    </div>
-
-    <div class="ui inverted fixed menu" id="sm-menu">
-      <a class="launch icon item">
-        <i class="content icon"></i>
-      </a>
-      
-      <div class="item">
-        Tableaaaaaaaaa
-      </div>
-    </div>
-
-  <div class="pusher">
-    <div class="ui vertical inverted menu" id="lg-sidebar">
-      <a class="item" href="/">
-        <b>Home</b>
-      </a>
-      <a class="item" href="/watchlist">
-        <b>Watchlist</b>
-      </a>
-      <div class="item">
-        <div class="header">View</div>
-        <div class="menu">
-          <a class="item" href="/todo">
-            Transactions
-          </a>
-          <a class="item" href="/todo">
-            Asset Accounts
-          </a>
-        </div>
-      </div>
-      <div class="item">
-        <div class="header">Reconciliation</div>
-        <div class="menu">
-          <a class="item" href="/todo">
-            Transactions
-          </a>
-        </div>
-      </div>
-    </div>
-    <div class="main">
-      <div class="ui masthead vertical segment">
-        <div class="ui container">
-          <div class="introduction">
-            <h1 class="ui header">
-              Table
-            </h1>
-          </div>
-        </div>
-        <div class="ui container">
-          <table class="ui celled table unstackable">
-            <thead>
-              <th>Name</th>
-              <th>Age</th>
-              <th>Job</th>
-            </thead>
-            <tbody>
-              <tr>
-                <td data-label="Name">James</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Engineer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Jill</td>
-                <td data-label="Age">26</td>
-                <td data-label="Job">Engineer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-              <tr>
-                <td data-label="Name">Elyse</td>
-                <td data-label="Age">24</td>
-                <td data-label="Job">Designer</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+<%- await include("partials/header.ejs", {req, res, title: "List Transactions", activepage: "/transactions"}) %>
+<div class="ui container">
+  <div class="introduction">
+    <h1 class="ui header">
+      Table
+    </h1>
   </div>
-</body>
-</html>
+</div>
+<div class="ui container">
+  <table class="ui celled table unstackable">
+    <thead>
+      <th>Name</th>
+      <th>Age</th>
+      <th>Job</th>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-label="Name">James</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Engineer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Jill</td>
+        <td data-label="Age">26</td>
+        <td data-label="Job">Engineer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+      <tr>
+        <td data-label="Name">Elyse</td>
+        <td data-label="Age">24</td>
+        <td data-label="Job">Designer</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<%- await include("partials/footer.ejs") %>

@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+  <head>
+    <title>knwst - <%= title %></title>
+    <link rel="stylesheet" type="text/css" href="semantic/dist/semantic.min.css">
+    <script
+      src="https://code.jquery.com/jquery-3.1.1.min.js"
+      integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
+      crossorigin="anonymous"></script>
+    <script src="semantic/dist/semantic.min.js"></script>
+
+    <script>
+      $(()=>{
+        $('#sm-sidebar').sidebar('attach events', '.launch.item');
+      });
+    </script>
+    <style>
+      /* below extracted from https://github.com/Semantic-Org/Semantic-UI-Docs */
+
+      /* container max width tweaks */
+      .main .container {
+        margin-left: 3em !important;
+        margin-right: 3em !important;
+        width: auto !important;
+      }
+
+      /* double sidebar all the way */
+      #sm-menu {
+        visibility: hidden;
+      }
+      #lg-sidebar {
+        position: fixed;
+        z-index: 1;
+        min-height: 100vh;
+      }
+      .main {
+        margin-left: 15rem;
+      }
+
+      @media only screen and (max-width: 1144px) {
+        #sm-menu {
+          visibility: visible;
+        }
+        #lg-sidebar {
+          visibility: hidden;
+        }
+        .main {
+          margin-left: 0px;
+          padding-top: 3em;
+        }
+      }
+    </style>
+  </head>
+  <body id="example">
+    <div class="ui vertical inverted sidebar menu" id="sm-sidebar">
+      <%- await include("sidebar.ejs", {req, res, activepage: locals.activepage}) %>
+    </div>
+
+    <div class="ui inverted fixed menu" id="sm-menu">
+      <a class="launch icon item">
+        <i class="content icon"></i>
+      </a>
+      
+      <div class="item">
+        <%= title %>
+      </div>
+    </div>
+
+    <div class="pusher">
+      <div class="ui vertical inverted menu" id="lg-sidebar">
+        <%- await include("sidebar.ejs", {req, res, activepage}) %>
+      </div>
+      <div class="main">
+        <div class="ui masthead vertical segment">
