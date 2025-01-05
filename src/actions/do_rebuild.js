@@ -5,6 +5,7 @@ const {goBack, fixToS, sToFix, addDate, bnMin} = require("../helpers.js");
 const yf = require('yahoo-finance2').default;
 
 module.exports = async (req, res) => {
+  return;
   let out = "";
 
   // firefly and pre-firefly transactions

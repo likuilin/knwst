@@ -37,4 +37,21 @@ const addDate = (date, days=1) => {
   return next;
 };
 
-module.exports = {getQuote, sToFix, fixToS, addDate, bnMin};
+/// new starting here
+
+const formatDate = (date, round=false) => {
+  // assume date comes from database adapter as Date
+  if (!(date instanceof Date)) throw new Error("Date is not date: " + (typeof date));
+  const [a, b] = date.toISOString().split("T");
+  if (!round && b !== "00:00:00.000Z") throw new Error("Date is not zero time: " + b);
+  return a;
+};
+
+const formatMoney = (s) => {
+  // assume s comes from database adapter as string with decimal point
+  if (!(typeof s === "string") || !s.match(/^-?\d+\.\d+$/)) throw new Error("Money amount format: " + s);
+  // lol let's just make it a float, for the UI whatever goes
+  return Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD', maximumFractionDigits: 100, useGrouping: true}).format(+s);
+};
+
+module.exports = {getQuote, sToFix, fixToS, addDate, bnMin, formatDate, formatMoney};

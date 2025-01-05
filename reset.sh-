@@ -1,0 +1,8 @@
+#!/bin/bash
+
+cat schema.sql | docker compose exec -T db mariadb -uknwst -pknwst knwst
+cat import_a.sql | docker compose exec -T db mariadb -uknwst -pknwst knwst
+cat import_c_nw_preffs.sql | docker compose exec -T db mariadb -uknwst -pknwst knwst
+cat import_d_cfs_txs.sql | docker compose exec -T db mariadb -uknwst -pknwst knwst
+cat import_e_link_cfs_payoffs.sql | docker compose exec -T db mariadb -uknwst -pknwst knwst
+cat import_f_todos_accts.sql | docker compose exec -T db mariadb -uknwst -pknwst knwst

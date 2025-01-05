@@ -1,0 +1,64 @@
+<%
+// todo: we do not need comment here after all the TODOs are done
+// todo: date range
+
+// todo: actually, we should use redis for this, since there are marketable asset accounts here
+
+let search = "internal and sort is not null";
+let title = "Accounts";
+let activepage = "/accts";
+if (req.query.internal !== undefined) {
+  search = "internal";
+  title = "Internal Accounts";
+  activepage = "/accts?internal";
+} else if (req.query.expense !== undefined) {
+  search = "revenue=0";
+  title = "Expense Accounts";
+  activepage = "/accts?expense";
+} else if (req.query.revenue !== undefined) {
+  search = "revenue=1";
+  title = "Revenue Accounts";
+  activepage = "/accts?revenue";
+}
+const accts = await db.query(`select a.*, sum(j.amount) as balance from accounts as a
+  left join journals_cash as j on j.acctid=a.acctid
+  where `+search+` group by a.acctid order by sort asc, acctid asc;`);
+
+if (req.query.skipintegrity === undefined) {
+  for (const a of accts) {
+    if (a.internal) {
+      if (a.revenue !== null) throw new Error("Internal account " + a.acctid + " failed check: revenue must be null");
+    } else {
+      if (a.revenue === null) throw new Error("External account " + a.acctid + " failed check: revenue not set");
+      if (a.nw_include !== 0) throw new Error("External account " + a.acctid + " failed check: nw_include");
+      if (a.taxable !== 0) throw new Error("External account " + a.acctid + " failed check: taxable");
+    }
+  }
+}
+
+%>
+<%- await include("partials/header.ejs", {req, res, title, activepage}) %>
+<div class="ui container">
+  <h1 class="ui header">
+    <%=title%>
+  </h1>
+  <table class="ui celled striped unstackable selectable collapsing table">
+    <thead>
+      <th>Account</th>
+      <th class="right aligned">Balance</th>
+    </thead>
+    <tbody>
+      <%
+      for (const {acctid, name, balance} of accts) {
+        %>
+        <tr>
+          <td class="collapsing"><a href="txns?acctid=<%=acctid%>"><%= name %></a></td>
+          <td class="right aligned <%= balance > 0 ? "positive" : balance < 0 ? "negative" : "" %>"><b><%= formatMoney(balance || "0.0") %></b></td>
+        </tr>
+        <%
+      }
+      %>
+    </tbody>
+  </table>
+</div>
+<%- await include("partials/footer.ejs") %>
