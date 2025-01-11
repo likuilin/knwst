@@ -1,0 +1,15 @@
+<%
+const cats = await db.query("select * from categories;");
+%>
+<%- await include("partials/header.ejs", {req, res, title: "Categories", activepage: "/cats"}) %>
+<div class="ui container">
+  <h1 class="ui header">
+    Categories
+  </h1>
+  <div class="ui bulleted list">
+    <% for (const {catid, name} of cats) { %>
+      <div class="item"><a href="txs?catid=<%=catid%>"><%=name%></a></div>
+    <% } %>
+  </div>
+</div>
+<%- await include("partials/footer.ejs") %>

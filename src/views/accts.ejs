@@ -1,8 +1,5 @@
 <%
-// todo: we do not need comment here after all the TODOs are done
-// todo: date range
-
-// todo: actually, we should use redis for this, since there are marketable asset accounts here
+// todo: actually, we should use redis for this, since there are marketable asset accounts here aaaaaa
 
 let search = "internal and sort is not null";
 let title = "Accounts";
@@ -52,7 +49,7 @@ if (req.query.skipintegrity === undefined) {
       for (const {acctid, name, balance} of accts) {
         %>
         <tr>
-          <td class="collapsing"><a href="txns?acctid=<%=acctid%>"><%= name %></a></td>
+          <td class="collapsing"><a href="journals?acctid=<%=acctid%>"><%= name %></a></td>
           <td class="right aligned <%= balance > 0 ? "positive" : balance < 0 ? "negative" : "" %>"><b><%= formatMoney(balance || "0.0") %></b></td>
         </tr>
         <%

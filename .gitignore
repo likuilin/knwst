@@ -1,3 +1,4 @@
 mariadb
+redis
 src/node_modules
 .env

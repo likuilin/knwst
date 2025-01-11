@@ -11,10 +11,31 @@
 
     <script>
       $(()=>{
+        // mobile sidebar
         $('#sm-sidebar').sidebar('attach events', '.launch.item');
+
+        // buttons with class post-btn
+        $(".post-btn").click(e => {
+          const t = e.target;
+          const href = $(t).data("href");
+          if (!href) return;
+
+          t.classList.add("loading");
+          $.post(href).always(r => {
+            t.classList.remove("loading");
+            if (r !== "OK") {
+              // console.log(r);
+              // alert("Unexpected from /" + href + ":\n" + (r.responseText || r));
+              // yeet
+              document.write(r.responseText || r);
+            } else window.location.reload();
+          });
+        });
       });
     </script>
     <style>
+      pre { margin: 0; }
+
       /* below extracted from https://github.com/Semantic-Org/Semantic-UI-Docs */
 
       /* container max width tweaks */
@@ -71,4 +92,5 @@
         <%- await include("sidebar.ejs", {req, res, activepage}) %>
       </div>
       <div class="main">
-        <div class="ui masthead vertical segment">
+        <div class="ui container">
+          <span></span>

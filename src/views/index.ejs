@@ -1,12 +1,30 @@
-<%- await include("partials/header.ejs", {req, res, title: "List Transactions", activepage: "/transactions"}) %>
-<div class="ui container">
-  <div class="introduction">
-    <h1 class="ui header">
-      Table
-    </h1>
-  </div>
-</div>
-<div class="ui container">
+<%- await include("partials/header.ejs", {req, res, title: "Home", activepage: "/"}) %>
+<h1 class="ui header">
+  knwst
+</h1>
+<div class="ui vertical segment">
+  <% {
+    // sync check to last transaction
+    const r = await db.query("select d from transactions order by d desc limit 1;");
+    if (r.length > 0) {
+      const lastDay = Temporal.PlainDate.from(r[0].d);
+
+      const synced = await redis.get("synced-to-date");
+      if (!synced || Temporal.PlainDate.compare(synced, lastDay) < 0) {
+        %>
+        <div class="ui error message">
+          <div class="header">
+            Redis cache is not synced to the latest transaction date (<%= lastDay.toString() %>)
+          </div>
+          <p>
+            The cache is currently synced up to <%= synced || "(never, cache is empty)" %>.
+            An error may have occurred. Please check the <a href="/cache">Manage Cache</a> page.
+          </p>
+        </div>
+        <%
+      }
+    }
+  } %>
   <table class="ui celled table unstackable">
     <thead>
       <th>Name</th>

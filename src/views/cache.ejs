@@ -1,0 +1,83 @@
+<%- await include("partials/header.ejs", {req, res, title: "Manage Cache", activepage: "/cache"}) %>
+<h1 class="ui header">
+  Manage Cache
+</h1>
+<div class="ui vertical segment">
+  <div class="ui compact menu">
+    <div class="item">
+      <div class="ui orange button post-btn" data-href="cache-rewind">Rewind 1 Year</div>
+    </div>
+    <div class="item">
+      <div class="ui blue button post-btn" data-href="cache-step">Single Step</div>
+    </div>
+    <div class="item">
+      <div class="ui blue button post-btn" data-href="cache-multistep">Multi Step</div>
+    </div>
+    <div class="item">
+      <div class="ui green button post-btn" data-href="cache-integrity">Integrity Check</div>
+    </div>
+    <div class="item">
+      <div class="ui red button post-btn" data-href="cache-reset">Reset Cache</div>
+    </div>
+  </div>
+  <div class="ui message">
+    <div class="header">
+      Current cache status
+    </div>
+    <p>
+      <%
+        const synced = await redis.get("synced-to-date");
+        let nextday;
+        if (!synced) {
+          %>The cache is empty. If you manually imported stuff into the database, click "Multi Step" above to sync everything!<%
+        } else {
+          nextday = Temporal.PlainDate.from(synced).add({days: 1}).toString();
+          %>
+          The main cache is currently synced up to <%= synced %>.
+          <a href="txs?d=<%= nextday %>">Click here to view the next day's txs.</a>
+          <%
+        }
+      %>
+    </p>
+  </div>
+  <%
+    if (await redis.get("multistep-run")) { %>
+  <div class="ui warning message">
+    <div class="header">
+      Multistep is currently running!
+    </div>
+    <p>A different thread is currently running the multistep loop. Click the button below to halt it (it halts cleanly after finishing up the step it's on).</p>
+    <div class="ui blue button" onclick="window.location.reload();" >Refresh</div>
+    <div class="ui red button post-btn" data-href="cache-multistep-stop">Stop Multistep</div>
+  </div>
+    <% }
+  %>
+  <%
+    const output = await redis.lrange("step-out", 0, -1);
+    if (output.length) { %>
+  <div class="ui info message">
+    <div class="header">
+      Last verbose step output
+    </div>
+    <p>
+      <ul>
+        <% output.reverse().map(e => { %><li><pre><%= e %></pre></li><% }); %>
+      </ul>
+    </p>
+  </div>
+    <% }
+  %>
+  <%
+    const warnings = await redis.lrange("warnings", 0, -1);
+    if (warnings.length > 0) {
+      %>
+  <h3 class="ui header">Warning Acknowledgement Helper</h3>
+  <div class="ui form field">
+    <textarea>insert into warnings_ack(d, warning, comment_com) values
+<%=warnings.map(w=>'("' + nextday + '", "' + w + '", "TODO")').join(',\n')%>;</textarea>
+  </div>
+      <%
+    }
+  %>
+</div>
+<%- await include("partials/footer.ejs") %>

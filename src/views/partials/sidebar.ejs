@@ -1,9 +1,14 @@
-<a class="item" href="/">
-  <b>Home <%=activepage%></b>
-</a>
-<a class="item" href="/watchlist">
-  <b>Watchlist</b>
-</a>
+<%
+  const item = (text, href) => {
+    %>
+    <a class="item<%= activepage === href ? " active" : "" %>" href="<%-href%>">
+      <%-text%>
+    </a>
+    <%
+  };
+%>
+<% item("Home", "/"); %>
+<% item("Watchlist", "/watchlist"); %>
 <div class="item">
   <div class="ui icon input">
     <input type="text" placeholder="Search transactions">
@@ -13,21 +18,11 @@
 <div class="item">
   <div class="header">Navigate</div>
   <div class="menu">
-    <a class="item" href="/todo">
-      Transactions
-    </a>
-    <a class="item" href="/todo">
-      Asset Accounts
-    </a>
-    <a class="item" href="/todo">
-      External Accounts
-    </a>
-    <a class="item" href="/todo">
-      Categories
-    </a>
-    <a class="item" href="/todo">
-      Journal Tags
-    </a>
+    <% item("Transactions", "/txs"); %>
+    <% item("Asset Accounts", "/accts"); %>
+    <% item("Budgets", "/budgets"); %>
+    <% item("Categories", "/cats"); %>
+    <% item("Journal Tags", "/tags"); %>
   </div>
 </div>
 <div class="item">
@@ -85,8 +80,6 @@
     <a class="item" href="/todo">
       Configure Price Feeds
     </a>
-    <a class="item" href="/todo">
-      Rebuild Cache
-    </a>
+    <% item("Manage Cache", "/cache"); %>
   </div>
 </div>

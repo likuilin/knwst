@@ -1,0 +1,116 @@
+<%
+// todo: we do not need comment here after all the TODOs are done
+// todo: date range parameter should be global and not hardcoded
+
+let search, params, header, activepage;
+if (req.query.txids) {
+  search = "txid in (" + req.query.txids.split(",").map(e=>+e).join(",") + ")";
+  header = "Specific Transactions";
+} else if (req.query.catid) {
+  search = "t.catid=" + (+req.query.catid);
+  header = "Category Transactions";
+} else if (req.query.d) {
+  const d = Temporal.PlainDate.from(req.query.d).toString();
+  search = "d = ?";
+  params = [d];
+  header = "Transactions on " + d;
+} else {
+  search = "d > now() - interval 1 month";
+  header = "All Transactions";
+  activepage = "";
+}
+
+const sql = `select txid, d, title_com, comment_com, completed, t.catid, categories.name as category, pattern,
+  (select sum(abs(amount))/2 from journals_cash as j where j.txid=t.txid) as na from transactions as t
+  left join categories on categories.catid=t.catid
+  where ` + search + ` order by d desc, txid desc;`;
+const txs = await db.query(sql, params);
+
+%>
+<%- await include("partials/header.ejs", {req, res, title: "Transactions", activepage}) %>
+<script>
+  $(()=>{
+    $(".sel-click").on("click", e => {
+      const txid = +$(e.target).parents("[data-txid]").data("txid");
+
+      // click checkbox if this isn't the checkbox
+      if (!e.target.classList.contains("sel-box")) $(".sel-row-"+txid+" .sel-box").click();
+
+      if (e.target.getAttribute("href") === "#") {
+        e.preventDefault();
+        return false;
+      }
+    });
+    $(".sel-box").on("change", e => {
+      const txid = +$(e.target).parents("[data-txid]").data("txid");
+      if (e.target.checked) {
+        $(".sel-row-"+txid+" .sel-show").addClass("active");
+      } else {
+        $(".sel-row-"+txid+" .sel-show").removeClass("active");
+      }
+    });
+    $(".sel-btn").on("click", () => {
+      const values = [...$(".active .sel-box")].map(e => +$(e).parents("[data-txid]").data("txid")).join(",");
+      if (values.length) window.location.search = "?txids=" + values;
+    });
+    $(".ui.accordion").accordion();
+  });
+</script>
+<h1 class="ui header">
+  <%=header%>
+</h1>
+<div class="ui accordion">
+  <div class="title">
+    <i class="dropdown icon"></i>
+    View SQL
+  </div>
+  <div class="content">
+    <pre class="transition hidden" style="margin: 0;"><%=sql%></pre>
+  </div>
+</div>
+<table class="ui celled striped unstackable single line definition collapsing table">
+  <thead>
+    <th></th>
+    <th>Date</th>
+    <th>Transaction Title</th>
+    <th class="right aligned">Type</th>
+    <th class="right aligned">Net Amt</th>
+    <th>Category</th>
+  </thead>
+  <tbody>
+    <%
+    for (const {txid, d, title_com, comment_com, completed, na, catid, category, pattern} of txs) {
+      %>
+      <tr class="sel-row-<%=txid%>" data-txid="<%=txid%>">
+        <td class="collapsing sel-show sel-click">
+          <div class="ui fitted checkbox">
+            <input type="checkbox" class="sel-box" /> <label></label>
+          </div>
+        </td>
+        <td class="selectable collapsing sel-show"><a href="#" class="sel-click" tabIndex="-1"><%= d %></a></td>
+        <td class="selectable sel-show">
+          <a href="tx?txid=<%=txid%>"><%= title_com === "TODO" ? "TODO: " + comment_com : title_com %></a>
+        </td>
+        <td class="right aligned collapsing sel-show sel-click"><%
+          let amt_color = "";
+          if (!completed) { %><span class="ui red label">Incomplete</span><% }
+          if (pattern === null) { %><div class="ui orange label">Complex</div><% }
+          else if (pattern.startsWith("pattern ")) { %><div class="ui blue label">Pattern</div><% }
+          else if (pattern === "empty") { %><div class="ui blue label">Empty</div><% }
+          else if (pattern.startsWith("transfer ")) { %><div class="ui gray label">Transfer</div><% }
+          else if (pattern.startsWith("expense ")) { %><div class="ui gray label">Withdrawal</div><% amt_color = " negative"; }
+          else if (pattern.startsWith("revenue ")) { %><div class="ui gray label">Deposit</div><% amt_color = " positive"; }
+          else throw new Error("Unrecognized pattern");
+        %></td>
+        <td class="right aligned collapsing<%= amt_color %> sel-click"><b><%= completed ? formatMoney(na) : "-" %></b></td>
+        <td class="selectable collapsing"><a href="txs?catid=<%=catid%>"><%= category %></a></td>
+      </tr>
+      <%
+    }
+    %>
+  </tbody>
+</table>
+<button class="ui primary button sel-btn">
+  Select Transactions
+</button>
+<%- await include("partials/footer.ejs") %>

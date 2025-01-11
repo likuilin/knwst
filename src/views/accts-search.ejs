@@ -1,0 +1,6 @@
+<% res.contentType('application/json'); %>
+<%- JSON.stringify({
+  success: true,
+  // todo: recency so this is not frustrating to use
+  results: await db.query("select name as name, acctid as value from accounts where name like concat('%', ?, '%');", [req.query.q])
+}) %>

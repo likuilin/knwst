@@ -1,0 +1,198 @@
+<%
+  const txid = +req.query.txid;
+  if (!isFinite(txid)) throw new Error("Invalid txid");
+
+  const [tx] = await db.query(`select *,
+    (select name from accounts where acctid=t.pattern_src) as pattern_src_name,
+    (select name from accounts where acctid=t.pattern_dest) as pattern_dest_name
+    from transactions t where txid=?;`, [txid]);
+  const cats = await db.query("select * from categories;");
+  const jcs = await db.query(`select j.*, a.name as account from journals_cash j left join accounts as a on a.acctid=j.acctid where txid=?;`, [txid]);
+  const jbs = await db.query(`select j.*, a.name as budget from journals_budget j left join budgets as a on a.budgetid=j.budgetid where txid=?;`, [txid]);
+%>
+
+<%- await include("partials/header.ejs", {req, res, title: "Transaction Detail", activepage: null}) %>
+<script>
+  $(()=>{
+    $(".ui.dropdown").dropdown();
+    $(".ui.checkbox").checkbox();
+  });
+</script>
+<%- await include("partials/accts-dropdown.ejs") %>
+<div class="ui container">
+  <h1 class="ui dividing header">
+    Transaction Detail
+  </h1>
+  <form class="ui form">
+    <h3 class="ui dividing header">Metadata</h4>
+    <div class="field">
+      <label>Description</label>
+      <div class="field">
+        <input type="text" name="title" value="<%=tx.title_com%>" />
+      </div>
+    </div>
+    <div class="fields">
+      <div class="two wide field">
+        <label>Date</label>
+        <input type="text" name="d" value="<%=tx.d%>" />
+      </div>
+      <div class="two wide field">
+        <label>Category</label>
+        <div class="ui fluid search selection dropdown">
+          <input type="hidden" name="catid" value="<%=tx.catid%>" />
+          <i class="dropdown icon"></i>
+          <div class="default text">Category</div>
+          <div class="menu">
+            <% for (const {catid, name} of cats) { %>
+              <div class="item" data-value="<%=catid%>"><%=name%></div>
+            <% } %>
+          </div>
+        </div>
+      </div>
+      <div class="six wide field">
+        <label>Pattern</label>
+        <input type="text" name="pattern" value="<%=tx.pattern%>" />
+      </div>
+      <div class="three wide field">
+        <label>Pattern Source</label>
+        <div class="ui search selection dropdown acct-dropdown">
+          <input type="hidden" name="pattern_src" value="<%=tx.pattern_src%>">
+          <i class="dropdown icon"></i>
+          <div class="default text">Select Account</div>
+          <% if (tx.pattern_src_name) { %>
+            <div class="menu">
+              <div class="item" data-value="<%=tx.pattern_src%>"><%=tx.pattern_src_name%></div>
+            </div>
+          <% } %>
+        </div>
+      </div>
+      <div class="three wide field">
+        <label>Pattern Destination</label>
+        <div class="ui search selection dropdown acct-dropdown">
+          <input type="hidden" name="pattern_dest" value="<%=tx.pattern_dest%>">
+          <i class="dropdown icon"></i>
+          <div class="default text">Select Account</div>
+          <% if (tx.pattern_dest_name) { %>
+            <div class="menu">
+              <div class="item" data-value="<%=tx.pattern_dest%>"><%=tx.pattern_dest_name%></div>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Comment</label>
+      <div class="field">
+        <textarea name="comment"><%=tx.comment_com%></textarea>
+      </div>
+    </div>
+    <div class="ui toggle checkbox">
+      <label>Completed</label>
+      <input type="checkbox" name="completed" tabindex="0" class="hidden" <%=tx.completed ? "checked " : ""%>/>
+    </div>
+    <div class="ui right floated primary button" tabindex="0">Edit Metadata</div>
+  </form>
+  <h3 class="ui dividing header">Cash Journals</h2>
+  <table class="ui celled unstackable selectable single line collapsing table">
+    <thead>
+      <th>Account</th>
+      <th>Amount</th>
+      <th>Date Physical</th>
+      <th>Date Purchased</th>
+      <th>Date Posted</th>
+      <th>Comment</th>
+      <th>Confirmation</th>
+    </thead>
+    <tbody>
+      <% for (const {jcid, acctid, account, dphys, dpurc, dpost, comment_com, confirm_com, amount} of jcs) { %>
+        <tr>
+          <td class="selectable"><a href="journals?acctid=<%=acctid%>"><%=account%></a></td>
+          <td><%=formatMoney(amount)%></td>
+          <td><%=dphys%></td>
+          <td><%=dpurc%></td>
+          <td><%=dpost%></td>
+          <td><%=comment_com%></td>
+          <td><%=confirm_com%></td>
+        </tr>
+        <%
+      }
+      %>
+    </tbody>
+  </table>
+  <h3 class="ui dividing header">Budget Journals</h2>
+  <table class="ui celled unstackable selectable single line collapsing table">
+    <thead>
+      <th>Budget</th>
+      <th>Amount</th>
+      <th>Date</th>
+    </thead>
+    <tbody>
+      <% for (const {jbid, budgetid, budget, d, amount} of jbs) { %>
+        <tr>
+          <td class="selectable"><a href="journals?budgetid=<%=budgetid%>"><%=budget%></a></td>
+          <td><%=formatMoney(amount)%></td>
+          <td><%=d%></td>
+        </tr>
+        <%
+      }
+      %>
+    </tbody>
+  </table>
+  <!--
+  <h3 class="ui dividing header">Point Journals</h2>
+  <table class="ui celled unstackable selectable single line collapsing table">
+    <thead>
+      <th>Account</th>
+      <th>Amount</th>
+      <th>Date Physical</th>
+      <th>Date Purchased</th>
+      <th>Date Posted</th>
+      <th>Comment</th>
+      <th>Confirmation</th>
+    </thead>
+    <tbody>
+      <% for (const {jcid, acctid, account, dphys, dpurc, dpost, comment_com, confirm_com, amount} of jcs) { %>
+        <tr>
+          <td class="selectable"><a href="journals?acctid=<%=acctid%>"><%=account%></a></td>
+          <td><%=formatMoney(amount)%></td>
+          <td><%=dphys%></td>
+          <td><%=dpurc%></td>
+          <td><%=dpost%></td>
+          <td><%=comment_com%></td>
+          <td><%=confirm_com%></td>
+        </tr>
+        <%
+      }
+      %>
+    </tbody>
+  </table>
+  <h3 class="ui dividing header">Asset Journals</h2>
+  <table class="ui celled unstackable selectable single line collapsing table">
+    <thead>
+      <th>Account</th>
+      <th>Amount</th>
+      <th>Date Physical</th>
+      <th>Date Purchased</th>
+      <th>Date Posted</th>
+      <th>Comment</th>
+      <th>Confirmation</th>
+    </thead>
+    <tbody>
+      <% for (const {jcid, acctid, account, dphys, dpurc, dpost, comment_com, confirm_com, amount} of jcs) { %>
+        <tr>
+          <td class="selectable"><a href="journals?acctid=<%=acctid%>"><%=account%></a></td>
+          <td><%=formatMoney(amount)%></td>
+          <td><%=dphys%></td>
+          <td><%=dpurc%></td>
+          <td><%=dpost%></td>
+          <td><%=comment_com%></td>
+          <td><%=confirm_com%></td>
+        </tr>
+        <%
+      }
+      %>
+    </tbody>
+  </table>
+  -->
+</div>
+<%- await include("partials/footer.ejs") %>

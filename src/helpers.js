@@ -1,7 +1,5 @@
 const fetch = require("node-fetch");
 
-const {getQuote} = require("./anxiety.js");
-
 const goBack = (link, text) => "<br /><br /><a href=\"" + link + "\">Click here to go back to " + text + ".</a>";
 
 // amounts are stored as decimal(64,18)	and dollars are stored as decimal(50,4)
@@ -39,19 +37,19 @@ const addDate = (date, days=1) => {
 
 /// new starting here
 
-const formatDate = (date, round=false) => {
-  // assume date comes from database adapter as Date
-  if (!(date instanceof Date)) throw new Error("Date is not date: " + (typeof date));
-  const [a, b] = date.toISOString().split("T");
-  if (!round && b !== "00:00:00.000Z") throw new Error("Date is not zero time: " + b);
-  return a;
-};
-
 const formatMoney = (s) => {
   // assume s comes from database adapter as string with decimal point
+  if (s === null) return "";
   if (!(typeof s === "string") || !s.match(/^-?\d+\.\d+$/)) throw new Error("Money amount format: " + s);
   // lol let's just make it a float, for the UI whatever goes
   return Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD', maximumFractionDigits: 100, useGrouping: true}).format(+s);
 };
 
-module.exports = {getQuote, sToFix, fixToS, addDate, bnMin, formatDate, formatMoney};
+module.exports = {
+  sToFix, fixToS, addDate, bnMin, formatMoney,
+  ...require("./anxiety.js"),
+  ...require("temporal-polyfill"),
+  ...require("./db.js"),
+  ...require("./redis.js"),
+  BigNumber: require('bignumber.js')
+};

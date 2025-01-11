@@ -6,8 +6,6 @@ const ejs = require("ejs");
 const morgan = require("morgan");
 const bodyParser = require("body-parser");
 
-const {db} = require("./db.js");
-
 (async () => {
     const app = express();
     app.use(morgan("combined"));
@@ -22,7 +20,11 @@ const {db} = require("./db.js");
     for (let page of fs.readdirSync("views")) {
         if (!page.endsWith(".ejs")) continue;
         app.get("/" + page.slice(0, -4), (req, res, next) => {
-            ejs.renderFile("./views/" + page, {req, res, env: process.env, db, ...helpers}, {async: true}, (err, strPromise) => {
+            ejs.renderFile("./views/" + page, {
+              req, res,
+              env: process.env,
+              ...helpers
+            }, {async: true}, (err, strPromise) => {
                 if (err) return next(err);
                 strPromise.then(str => {
                     res.send(str);

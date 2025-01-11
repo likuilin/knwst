@@ -1,0 +1,10 @@
+<script>
+  $(()=>{
+    $('.ui.dropdown.acct-dropdown').dropdown({
+      apiSettings: {
+        cache: false,
+        url: 'accts-search?q={query}'
+      }
+    });
+  });
+</script>

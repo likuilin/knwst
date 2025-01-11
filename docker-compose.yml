@@ -11,7 +11,14 @@ services:
     working_dir: /app/src
     command: "bash -c 'yarn && yarn watch'"
     environment:
-      ADMINER_EXTERNAL_URL: ${ADMINER_EXTERNAL_URL:-/adminer} # only used for handy <a href="...">
+      KNWST_TZ: America/New_York
+  redis:
+    image: redis:7.4.2-alpine
+    volumes:
+      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - ./redis:/data:Z
+    restart: always
+    command: "redis-server /usr/local/etc/redis/redis.conf"
   db:
     image: mariadb:11.3.2-jammy
     volumes:
